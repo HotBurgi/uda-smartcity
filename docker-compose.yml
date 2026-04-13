@@ -1,0 +1,37 @@
+version: '3.8'
+services:
+  # Database MySQL
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: smartcity
+    ports:
+      - "3306:3306"
+
+  # phpMyAdmin per gestire il DB via browser (il tuo pezzo PHP)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: db
+
+  # Backend Flask
+  backend:
+    build: ./backend
+    ports:
+      - "5001:5000"
+    environment:
+      - DB_HOST=db
+      - DB_USER=root
+      - DB_PASS=root
+      - DB_NAME=smartcity
+    depends_on:
+      - db
+
+  # Frontend React
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"

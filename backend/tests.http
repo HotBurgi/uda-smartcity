@@ -1,0 +1,50 @@
+### INIT DATABASE
+POST http://localhost:5001/api/init_db
+
+### LOGIN AS ADMIN
+POST http://localhost:5001/api/login
+Content-Type: application/json
+
+{
+    "username": "admin",
+    "password": "admin_password"
+}
+
+### LOGIN AS USER
+POST http://localhost:5001/api/login
+Content-Type: application/json
+
+{
+    "username": "user1",
+    "password": "user1_password"
+}
+
+### GET AREAS
+GET http://localhost:5001/api/areas
+
+### BOOK AN AREA
+POST http://localhost:5001/api/bookings
+Content-Type: application/json
+
+{
+    "area_id": "P1"
+}
+
+### MY HISTORY
+GET http://localhost:5001/api/bookings/my_history
+
+### ADMIN: ADD AREA
+POST http://localhost:5001/api/admin/areas
+Content-Type: application/json
+
+{
+    "id": "P1",
+    "name": "Piazza Vittoria",
+    "max_capacity": 50
+}
+
+### ADMIN: GET ALL BOOKINGS
+GET http://localhost:5001/api/admin/bookings
+
+### ADMIN: GET TRENDS FOR P1
+GET http://localhost:5001/api/admin/areas/P1/trends

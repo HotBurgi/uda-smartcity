@@ -1,0 +1,51 @@
+PROGETTO DI GRUPPO – UDA STEM - SMARTCITY 
+Il Comune di Brescia ha richiesto la realizzazione di un prototipo di applicazione web per la 
+gestione smart dei parcheggi cittadini. 
+Nella prima release, si chiede di realizzare una applicazione con frontend che dovrà permettere 
+al cittadino ( user) di autenticarsi con username e password fornite dall’U cio Mobilità 
+Sostenibile e di svolgere le seguenti operazioni: 
+1) visualizzare le aree di parcheggio attive nel servizio; 
+2) visualizzare, per ogni area, il numero di posti disponibili; 
+3) prenotare un’area di sosta, la durata della prenotazione sarà automatica di 1 ora. 
+4) visualizzare lo storico delle proprie prenotazioni. 
+ 
+Il sistema dovrà inoltre prevedere un ruolo di amministratore , con le seguenti funzionalità: 
+1) aggiungere nuove aree di parcheggio, impostando un id, un nome opzionale e una 
+capienza massima; 
+2) deve poter vedere tutto lo storico delle prenotazioni fatte da tutti gli utenti; 
+3) deve poter visualizzare, per ciascuna area, l’andamento giornaliero delle prenotazioni 
+negli ultimi 30 giorni. 
+ 
+Dal punto di vista tecnologico, il gruppo dovrà scegliere e utilizzare una base dati persistente. 
+Dovrà inoltre essere prodotta una relazione tecnica. 
+Vincoli e indicazioni 
+ Frontend e backend devono essere separati. 
+ Il backend deve esporre API HTTP/REST. 
+ L’autenticazione deve essere gestita tramite login e cookie di sessione. 
+ I dati devono essere salvati in una base dati scelta dal gruppo. 
+ Il prototipo deve distinguere almeno due ruoli: user e admin. 
+ Le funzionalità devono essere testate anche tramite ﬁle .http o strumenti 
+equivalenti. 
+ 
+Aspetti progettuali da considerare 
+ calcolo dei posti disponibili; 
+ gestione delle prenotazioni attive; 
+ storico prenotazioni; 
+ distinzione tra operazioni utente e amministratore; 
+ aggiornamento dei dati lato interfaccia; 
+ organizzazione del codice frontend e backend. 
+ 
+Repository del progetto 
+Contenente:  codice frontend 
+ codice backend 
+ ﬁle di conﬁgurazione del database 
+ eventuali ﬁle .http per test delle API 
+ Relazione tecnica 
+ README con istruzioni per avviare il progetto 
+ 
+Esposizione del progetto 
+Ogni gruppo presenterà il proprio lavoro mostrando: 
+ il funzionamento dell’applicazione 
+ le principali scelte tecniche 
+ la struttura del sistema sviluppato. 
+ 
