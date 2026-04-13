@@ -1,0 +1,2 @@
+A volte non refresha istantaneamente il sito quando si fa una prenotazione
+Aggiungere form prenotazione
