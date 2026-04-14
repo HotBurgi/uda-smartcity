@@ -66,7 +66,7 @@ export const UserDashboard = () => {
 
     const end = new Date(start.getTime() + Number(durationMinutes) * 60000);
 
-    const fmt = new Intl.DateTimeFormat(undefined, {
+    const fmt = new Intl.DateTimeFormat("it-IT", {
       year: "numeric",
       month: "short",
       day: "2-digit",
@@ -136,13 +136,13 @@ export const UserDashboard = () => {
     const selectedDuration = Number(bookingDurationByArea[areaId] || 60);
 
     if (!selectedStart) {
-      setActionError("Please select a start time.");
+      setActionError("Seleziona un orario di inizio.");
       setBookingInProgress((prev) => ({ ...prev, [areaId]: false }));
       return;
     }
 
     if (isPastSelection(selectedDate, selectedTime)) {
-      setActionError("Start time must be in the future.");
+      setActionError("L'orario di inizio deve essere nel futuro.");
       setBookingInProgress((prev) => ({ ...prev, [areaId]: false }));
       return;
     }
@@ -157,7 +157,7 @@ export const UserDashboard = () => {
         },
       });
       setSuccessMsg(
-        "Booking successful! Your selected slot has been reserved.",
+        "Prenotazione effettuata! La fascia selezionata e stata riservata.",
       );
       fetchAreas();
     } catch (e) {
@@ -167,12 +167,12 @@ export const UserDashboard = () => {
     }
   };
 
-  if (loading) return <div>Loading available areas...</div>;
+  if (loading) return <div>Caricamento aree disponibili...</div>;
 
   return (
     <>
       <div className="flex justify-between items-center mb-4">
-        <h2>Available Parking Areas</h2>
+        <h2>Aree parcheggio disponibili</h2>
       </div>
 
       {actionError && (
@@ -194,7 +194,7 @@ export const UserDashboard = () => {
 
       {areas.length === 0 ? (
         <div className="card text-center text-muted py-5">
-          No parking areas configured by the admin yet.
+          Nessuna area parcheggio configurata dall'amministratore.
         </div>
       ) : (
         <div className="grid">
@@ -213,13 +213,13 @@ export const UserDashboard = () => {
                   <span
                     className={`badge ${isFull ? "badge-danger" : "badge-success"}`}
                   >
-                    {isFull ? "FULL" : "AVAILABLE"}
+                    {isFull ? "PIENA" : "DISPONIBILE"}
                   </span>
                 </div>
 
                 <div className="card-content mt-4">
                   <div className="flex justify-between mb-2">
-                    <span className="text-muted">Available Spots</span>
+                    <span className="text-muted">Posti disponibili</span>
                     <span style={{ fontSize: "1.25rem", fontWeight: "700" }}>
                       {a.available_capacity}{" "}
                       <span
@@ -265,7 +265,7 @@ export const UserDashboard = () => {
                         className="flex items-center gap-2 text-muted"
                         style={{ marginBottom: "0.35rem" }}
                       >
-                        <Clock size={16} /> Select Parking Slot
+                        <Clock size={16} /> Seleziona fascia oraria
                       </span>
                     </label>
                     <div
@@ -331,30 +331,30 @@ export const UserDashboard = () => {
                         disabled={bookingInProgress[a.id]}
                       >
                         {bookingInProgress[a.id]
-                          ? "Booking..."
-                          : "Reserve Spot"}
+                          ? "Prenotazione..."
+                          : "Prenota posto"}
                       </button>
                     </div>
                     <div
                       className="text-muted"
                       style={{ fontSize: "0.8rem", marginTop: "0.25rem" }}
                     >
-                      Selected slot:{" "}
+                      Fascia selezionata:{" "}
                       {formatReadableSlot(
                         buildStartDateTime(
                           bookingDateByArea[a.id],
                           bookingTimeByArea[a.id],
                         ),
                         bookingDurationByArea[a.id] || 60,
-                      ) || "Choose date, time, and duration"}
+                      ) || "Scegli data, ora e durata"}
                     </div>
                     {isFull && (
                       <div
                         className="text-muted"
                         style={{ fontSize: "0.8rem", marginTop: "0.5rem" }}
                       >
-                        Area currently full. You can still try reserving a
-                        future time slot.
+                        Area attualmente piena. Puoi comunque provare a
+                        prenotare una fascia oraria futura.
                       </div>
                     )}
                   </div>

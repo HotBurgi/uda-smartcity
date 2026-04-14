@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
-import { apiClient } from '../api';
-import { Clock } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { apiClient } from "../api";
 
 export const UserHistory = () => {
   const [history, setHistory] = useState([]);
@@ -9,7 +8,7 @@ export const UserHistory = () => {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const data = await apiClient('/bookings/my_history');
+        const data = await apiClient("/bookings/my_history");
         setHistory(data);
       } catch (e) {
         console.error(e);
@@ -20,36 +19,40 @@ export const UserHistory = () => {
     fetchHistory();
   }, []);
 
-  if (loading) return <div>Loading history...</div>;
+  if (loading) return <div>Caricamento storico...</div>;
 
   return (
     <>
-      <h2 className="mb-4">My Bookings History</h2>
-      
+      <h2 className="mb-4">Storico delle mie prenotazioni</h2>
+
       {history.length === 0 ? (
-        <div className="card text-center text-muted">You have no booking history.</div>
+        <div className="card text-center text-muted">
+          Non hai prenotazioni nello storico.
+        </div>
       ) : (
         <div className="table-container">
           <table>
             <thead>
               <tr>
-                <th>Booking ID</th>
-                <th>Area Name</th>
-                <th>Start Time</th>
-                <th>End Time</th>
-                <th>Status</th>
+                <th>ID prenotazione</th>
+                <th>Nome area</th>
+                <th>Ora inizio</th>
+                <th>Ora fine</th>
+                <th>Stato</th>
               </tr>
             </thead>
             <tbody>
-              {history.map(b => (
+              {history.map((b) => (
                 <tr key={b.id}>
                   <td>#{b.id}</td>
                   <td>{b.area_name || b.area_id}</td>
-                  <td>{new Date(b.start_time).toLocaleString()}</td>
-                  <td>{new Date(b.end_time).toLocaleString()}</td>
+                  <td>{new Date(b.start_time).toLocaleString("it-IT")}</td>
+                  <td>{new Date(b.end_time).toLocaleString("it-IT")}</td>
                   <td>
-                    <span className={`badge ${b.status === 'Active' ? 'badge-success' : 'badge-neutral'}`}>
-                      {b.status}
+                    <span
+                      className={`badge ${b.status === "Active" ? "badge-success" : "badge-neutral"}`}
+                    >
+                      {b.status === "Active" ? "Attiva" : b.status}
                     </span>
                   </td>
                 </tr>
