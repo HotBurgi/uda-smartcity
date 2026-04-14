@@ -20,3 +20,4 @@ CREATE TABLE IF NOT EXISTS bookings (
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (area_id) REFERENCES parking_areas(id)
 );
+

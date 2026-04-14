@@ -1,2 +1,2 @@
 A volte non refresha istantaneamente il sito quando si fa una prenotazione
-Aggiungere form prenotazione
+Trasforma la prenotazione a bottone, in un form che tipermetta di sceggliere l'ora di parcheggio, e non solo di prenotare per un'ora a partire da adesso

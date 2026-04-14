@@ -164,20 +164,53 @@ def create_booking():
     if 'user_id' not in session:
         return jsonify({"error": "Unauthorized"}), 401
         
-    data = request.json
+    data = request.json or {}
     area_id = data.get('area_id')
+    start_time_raw = data.get('start_time')
+    duration_minutes_raw = data.get('duration_minutes', 60)
     
     if not area_id:
         return jsonify({"error": "area_id is required"}), 400
+
+    try:
+        duration_minutes = int(duration_minutes_raw)
+    except (TypeError, ValueError):
+        return jsonify({"error": "duration_minutes must be an integer"}), 400
+
+    if duration_minutes not in [30, 60, 90]:
+        return jsonify({"error": "duration_minutes must be one of: 30, 60, 90"}), 400
+
+    if start_time_raw:
+        try:
+            try:
+                start_time = datetime.strptime(start_time_raw, "%Y-%m-%dT%H:%M")
+            except ValueError:
+                start_time = datetime.strptime(start_time_raw, "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            return jsonify({"error": "Invalid start_time format. Use YYYY-MM-DDTHH:MM"}), 400
+
+        # Prevent bookings in the past.
+        if start_time < datetime.now() - timedelta(minutes=1):
+            return jsonify({"error": "start_time cannot be in the past"}), 400
+    else:
+        start_time = datetime.now()
+
+    end_time = start_time + timedelta(minutes=duration_minutes)
 
     conn = get_db()
     cursor = conn.cursor(dictionary=True)
     
     cursor.execute("""
         SELECT a.max_capacity,
-        (SELECT COUNT(*) FROM bookings b WHERE b.area_id = a.id AND NOW() BETWEEN b.start_time AND b.end_time) as active_bookings
+        (
+            SELECT COUNT(*)
+            FROM bookings b
+            WHERE b.area_id = a.id
+            AND b.start_time < %s
+            AND b.end_time > %s
+        ) as active_bookings
         FROM parking_areas a WHERE a.id = %s
-    """, (area_id,))
+    """, (end_time, start_time, area_id))
     
     area_status = cursor.fetchone()
     
@@ -190,9 +223,6 @@ def create_booking():
         cursor.close()
         conn.close()
         return jsonify({"error": "Area is full"}), 400
-
-    start_time = datetime.now()
-    end_time = start_time + timedelta(hours=1)
     
     cursor.execute("""
         INSERT INTO bookings (user_id, area_id, start_time, end_time) 
@@ -210,6 +240,7 @@ def create_booking():
         "booking": {
             "id": booking_id,
             "area_id": area_id,
+            "duration_minutes": duration_minutes,
             "start_time": start_time.strftime("%Y-%m-%d %H:%M:%S"),
             "end_time": end_time.strftime("%Y-%m-%d %H:%M:%S")
         }
