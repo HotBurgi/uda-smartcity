@@ -3,11 +3,12 @@ import { apiClient } from "../api";
 import { Link } from "react-router-dom";
 import { Plus } from "lucide-react";
 
+// Dashboard admin: creazione area e elenco aree gestite.
 export const AdminDashboard = () => {
   const [areas, setAreas] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Form state
+  // Stato del form di creazione area.
   const [id, setId] = useState("");
   const [name, setName] = useState("");
   const [maxCapacity, setMaxCapacity] = useState("");
@@ -30,6 +31,7 @@ export const AdminDashboard = () => {
   }, []);
 
   const handleCreate = async (e) => {
+    // Invia i dati nuova area al backend e aggiorna la lista.
     e.preventDefault();
     setError("");
     setSuccess("");

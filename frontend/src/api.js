@@ -1,4 +1,4 @@
-// Api utilities encapsulating fetch with credentials
+// Utility API: incapsula fetch con credenziali e gestione errori.
 const API_BASE_URL = "http://localhost:5001/api";
 
 export const apiClient = async (endpoint, options = {}) => {
@@ -8,7 +8,7 @@ export const apiClient = async (endpoint, options = {}) => {
     headers: {
       "Content-Type": "application/json",
     },
-    credentials: "include", // Needed for session cookies
+    credentials: "include", // Necessario per inviare i cookie di sessione.
   };
 
   const config = { ...defaultOptions, ...options };
@@ -28,7 +28,7 @@ export const apiClient = async (endpoint, options = {}) => {
     throw new Error(errorMsg);
   }
 
-  // Some endpoints (like logout) might return empty body or simple message
+  // Alcuni endpoint (es. logout) possono rispondere senza body JSON.
   try {
     return await response.json();
   } catch (e) {

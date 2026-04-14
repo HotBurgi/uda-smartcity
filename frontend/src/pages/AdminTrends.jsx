@@ -13,6 +13,7 @@ import {
 import { Bar } from "react-chartjs-2";
 import { ArrowLeft } from "lucide-react";
 
+// Registra i componenti Chart.js usati nel grafico a barre.
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -23,11 +24,13 @@ ChartJS.register(
 );
 
 export const AdminTrends = () => {
+  // Pagina trend: mostra l'andamento prenotazioni area negli ultimi 30 giorni.
   const { areaId } = useParams();
   const [trends, setTrends] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Ricarica i dati quando cambia l'ID area nella route.
     const fetchTrends = async () => {
       try {
         const data = await apiClient(`/admin/areas/${areaId}/trends`);
@@ -44,6 +47,7 @@ export const AdminTrends = () => {
   if (loading) return <div>Caricamento trend...</div>;
 
   const data = {
+    // Trasforma i dati API nel formato richiesto da react-chartjs-2.
     labels: trends.map((t) =>
       new Date(t.date).toLocaleDateString("it-IT", {
         month: "short",
@@ -63,6 +67,7 @@ export const AdminTrends = () => {
   };
 
   const options = {
+    // Configurazione visuale del grafico.
     responsive: true,
     maintainAspectRatio: false,
     plugins: {

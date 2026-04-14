@@ -1,3 +1,4 @@
+-- Tabella utenti per autenticazione e autorizzazione a ruoli.
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
@@ -5,12 +6,14 @@ CREATE TABLE IF NOT EXISTS users (
     role ENUM('user', 'admin') NOT NULL DEFAULT 'user'
 );
 
+-- Tabella aree di parcheggio configurate dall'amministratore.
 CREATE TABLE IF NOT EXISTS parking_areas (
     id VARCHAR(50) PRIMARY KEY,
     name VARCHAR(100),
     max_capacity INT NOT NULL
 );
 
+-- Tabella prenotazioni con intervallo temporale di occupazione.
 CREATE TABLE IF NOT EXISTS bookings (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,

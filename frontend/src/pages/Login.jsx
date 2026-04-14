@@ -3,6 +3,7 @@ import { useAuth } from "../AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Car } from "lucide-react";
 
+// Pagina di accesso: autentica utente e reindirizza in base al ruolo.
 export const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -11,6 +12,7 @@ export const Login = () => {
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
+    // Invia credenziali al backend e gestisce il redirect post-login.
     e.preventDefault();
     try {
       const data = await login(username, password);

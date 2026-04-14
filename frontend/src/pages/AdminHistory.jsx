@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { apiClient } from "../api";
 
+// Storico amministratore: mostra tutte le prenotazioni del sistema.
 export const AdminHistory = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Carica lo storico globale al primo render.
     const fetchHistory = async () => {
       try {
         const data = await apiClient("/admin/bookings");

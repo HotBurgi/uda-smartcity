@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { apiClient } from "../api";
 
+// Storico utente: visualizza le prenotazioni personali.
 export const UserHistory = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Carica lo storico una sola volta all'apertura pagina.
     const fetchHistory = async () => {
       try {
         const data = await apiClient("/bookings/my_history");

@@ -13,6 +13,7 @@ import { AdminDashboard } from "./pages/AdminDashboard";
 import { AdminHistory } from "./pages/AdminHistory";
 import { AdminTrends } from "./pages/AdminTrends";
 
+// Route guard: permette l'accesso solo agli utenti autenticati con ruolo consentito.
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user } = useAuth();
 
@@ -35,6 +36,7 @@ const AppRoutes = () => {
   const { user } = useAuth();
   return (
     <Routes>
+      {/* Redirect intelligente in base allo stato login */}
       <Route
         path="/login"
         element={
@@ -65,7 +67,7 @@ const AppRoutes = () => {
       />
 
       <Route element={<Layout />}>
-        {/* User Routes */}
+        {/* Rotte utente */}
         <Route
           path="/dashboard"
           element={
@@ -83,7 +85,7 @@ const AppRoutes = () => {
           }
         />
 
-        {/* Admin Routes */}
+        {/* Rotte amministratore */}
         <Route
           path="/admin"
           element={
@@ -117,6 +119,7 @@ const AppRoutes = () => {
 
 export const App = () => {
   return (
+    // Provider auth + router globale dell'applicazione.
     <AuthProvider>
       <Router>
         <AppRoutes />

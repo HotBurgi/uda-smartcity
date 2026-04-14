@@ -6,6 +6,7 @@ import mysql.connector
 from mysql.connector import pooling
 import hashlib
 
+# Backend SmartCity: API Flask per autenticazione, aree parcheggio e prenotazioni.
 app = Flask(__name__)
 app.secret_key = 'super_secret_smartcity_key'  # Used for session cookies
 CORS(app, supports_credentials=True, origins=["http://localhost:3000", "http://127.0.0.1:3000"])
@@ -18,6 +19,7 @@ DB_NAME = os.environ.get('DB_NAME', 'smartcity')
 # Keep pool None init delay since Docker dependencies might start simultaneously
 pool = None
 
+# Restituisce una connessione al database, inizializzando il pool al primo utilizzo.
 def get_db():
     global pool
     if pool is None:
@@ -42,12 +44,13 @@ def get_db():
     return pool.get_connection()
 
 def hash_password(password):
+    # Usa SHA-256 per allinearsi al formato hash salvato nel database.
     return hashlib.sha256(password.encode()).hexdigest()
 
 @app.route('/api/init_db', methods=['POST'])
 def init_db():
     try:
-        # First ensure DB exists
+        # Assicura che il database esista prima di applicare lo schema.
         conn_setup = mysql.connector.connect(
             host=DB_HOST, user=DB_USER, password=DB_PASS
         )
@@ -62,10 +65,12 @@ def init_db():
         with open('schema.sql', 'r') as f:
             schema_sql = f.read()
         
+        # Esegue lo schema SQL separando gli statement sul ';'.
         for statement in schema_sql.split(';'):
             if statement.strip():
                 cursor.execute(statement)
 
+        # Inserisce utenti di base solo al primo bootstrap.
         cursor.execute("SELECT COUNT(*) FROM users")
         if cursor.fetchone()[0] == 0:
             admin_pw = hash_password('admin')
@@ -83,14 +88,16 @@ def init_db():
         if 'conn' in locals() and conn.is_connected():
             conn.close()
 
-# =========== AUTHENTICATION ===========
+# =========== AUTENTICAZIONE ===========
 
 @app.route('/api/login', methods=['POST'])
 def login():
+    # Estrae credenziali dal body JSON della richiesta.
     data = request.json
     username = data.get('username')
     password = data.get('password')
     
+    # Verifica presenza dei campi obbligatori.
     if not username or not password:
         return jsonify({"error": "Missing credentials"}), 400
 
@@ -105,6 +112,7 @@ def login():
         conn.close()
 
         if user:
+            # Salva i dati minimi dell'utente nella sessione server-side.
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['role'] = user['role']
@@ -116,11 +124,13 @@ def login():
 
 @app.route('/api/logout', methods=['POST'])
 def logout():
+    # Invalida la sessione corrente.
     session.clear()
     return jsonify({"message": "Logged out successfully"})
 
 @app.route('/api/me', methods=['GET'])
 def get_me():
+    # Restituisce le informazioni utente presenti in sessione.
     if 'user_id' in session:
         return jsonify({
             "id": session['user_id'],
@@ -129,7 +139,7 @@ def get_me():
         })
     return jsonify({"error": "Not authenticated"}), 401
 
-# =========== USER ENDPOINTS ===========
+# =========== ENDPOINT UTENTE ===========
 
 @app.route('/api/areas', methods=['GET'])
 def get_areas():
@@ -139,6 +149,7 @@ def get_areas():
     conn = get_db()
     cursor = conn.cursor(dictionary=True)
     
+    # Calcola la disponibilita sottraendo le prenotazioni attive alla capienza massima.
     query = """
         SELECT a.id, a.name, a.max_capacity,
         (a.max_capacity - (
@@ -154,7 +165,7 @@ def get_areas():
     conn.close()
     
     for area in areas:
-        # Avoid negative numbers nicely
+        # Evita valori negativi in caso di sovrapposizioni anomale.
         area['available_capacity'] = max(0, int(area['available_capacity']))
         
     return jsonify(areas)
@@ -172,6 +183,7 @@ def create_booking():
     if not area_id:
         return jsonify({"error": "area_id is required"}), 400
 
+    # Valida e normalizza la durata richiesta.
     try:
         duration_minutes = int(duration_minutes_raw)
     except (TypeError, ValueError):
@@ -180,6 +192,7 @@ def create_booking():
     if duration_minutes not in [30, 60, 90]:
         return jsonify({"error": "duration_minutes must be one of: 30, 60, 90"}), 400
 
+    # Accetta sia formato datetime-local che timestamp completo.
     if start_time_raw:
         try:
             try:
@@ -189,7 +202,7 @@ def create_booking():
         except ValueError:
             return jsonify({"error": "Invalid start_time format. Use YYYY-MM-DDTHH:MM"}), 400
 
-        # Prevent bookings in the past.
+        # Blocca prenotazioni nel passato (con tolleranza minima).
         if start_time < datetime.now() - timedelta(minutes=1):
             return jsonify({"error": "start_time cannot be in the past"}), 400
     else:
@@ -200,6 +213,7 @@ def create_booking():
     conn = get_db()
     cursor = conn.cursor(dictionary=True)
     
+    # Verifica capienza considerando solo prenotazioni che si sovrappongono all'intervallo richiesto.
     cursor.execute("""
         SELECT a.max_capacity,
         (
@@ -235,6 +249,7 @@ def create_booking():
     cursor.close()
     conn.close()
     
+    # Risposta con riepilogo della prenotazione appena creata.
     return jsonify({
         "message": "Booking successful",
         "booking": {
@@ -254,6 +269,7 @@ def my_history():
     conn = get_db()
     cursor = conn.cursor(dictionary=True)
     
+    # Calcola lo stato direttamente in query in base all'ora corrente.
     cursor.execute("""
         SELECT b.id, b.area_id, a.name as area_name, b.start_time, b.end_time,
         IF(NOW() BETWEEN b.start_time AND b.end_time, 'Active', 'Expired') as status
@@ -269,8 +285,9 @@ def my_history():
     
     return jsonify(history)
 
-# =========== ADMIN ENDPOINTS ===========
+# =========== ENDPOINT AMMINISTRATORE ===========
 
+# Controllo ruolo amministratore dalla sessione.
 def is_admin():
     return session.get('role') == 'admin'
 
@@ -287,6 +304,7 @@ def add_area():
     if not area_id or max_capacity is None:
         return jsonify({"error": "id and max_capacity are required"}), 400
 
+    # Converte la capienza in intero prima dell'inserimento.
     try:
         max_capacity = int(max_capacity)
     except ValueError:
@@ -313,6 +331,7 @@ def global_history():
     conn = get_db()
     cursor = conn.cursor(dictionary=True)
     
+    # Recupera tutte le prenotazioni con utente e area collegati.
     cursor.execute("""
         SELECT b.id, u.username, b.area_id, a.name as area_name, b.start_time, b.end_time 
         FROM bookings b
@@ -335,6 +354,7 @@ def area_trends(area_id):
     conn = get_db()
     cursor = conn.cursor(dictionary=True)
     
+    # Aggrega conteggi giornalieri degli ultimi 30 giorni per l'area selezionata.
     cursor.execute("""
         SELECT DATE(start_time) as booking_date, COUNT(*) as booking_count
         FROM bookings
@@ -349,6 +369,7 @@ def area_trends(area_id):
 
     trend_dict = {row['booking_date'].strftime('%Y-%m-%d'): row['booking_count'] for row in trends_raw}
     
+    # Completa i giorni senza prenotazioni con conteggio pari a 0.
     trends = []
     for i in range(29, -1, -1):
         d = datetime.now() - timedelta(days=i)

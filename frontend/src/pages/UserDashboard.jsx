@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { apiClient } from "../api";
 import { MapPin, Clock } from "lucide-react";
 
+// Dashboard utente: mostra disponibilita aree e form di prenotazione.
 export const UserDashboard = () => {
   const [areas, setAreas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,6 +22,7 @@ export const UserDashboard = () => {
     `${pad(date.getHours())}:${pad(date.getMinutes())}`;
 
   const getDefaultBookingStart = () => {
+    // Arrotonda al prossimo slot da 30 minuti.
     const d = new Date();
     const rounded = Math.ceil(d.getMinutes() / 30) * 30;
     d.setMinutes(rounded, 0, 0);
@@ -35,6 +37,7 @@ export const UserDashboard = () => {
   };
 
   const getTimeOptions = () => {
+    // Genera opzioni orarie giornaliere (step 30 minuti).
     const options = [];
     for (let hour = 0; hour < 24; hour += 1) {
       for (const minute of [0, 30]) {
@@ -48,6 +51,7 @@ export const UserDashboard = () => {
   const TIME_OPTIONS = getTimeOptions();
 
   const isPastSelection = (dateValue, timeValue) => {
+    // Verifica che la data/ora scelta non sia nel passato.
     if (!dateValue || !timeValue) return false;
     const selected = new Date(`${dateValue}T${timeValue}`);
     if (Number.isNaN(selected.getTime())) return false;
@@ -81,6 +85,7 @@ export const UserDashboard = () => {
     try {
       const data = await apiClient("/areas");
       setAreas(data);
+      // Inizializza valori di default solo per aree non ancora presenti nello stato locale.
       const defaultStartByArea = {};
       for (const area of data) {
         defaultStartByArea[area.id] = getDefaultBookingStart();
@@ -120,12 +125,14 @@ export const UserDashboard = () => {
   };
 
   useEffect(() => {
+    // Refresh periodico per aggiornare la disponibilita in tempo reale.
     fetchAreas();
     const interval = setInterval(fetchAreas, 30000); // 30s refresh
     return () => clearInterval(interval);
   }, []);
 
   const handleBook = async (areaId) => {
+    // Crea una prenotazione per l'area selezionata con data/ora e durata scelte.
     setActionError("");
     setSuccessMsg("");
     setBookingInProgress((prev) => ({ ...prev, [areaId]: true }));
@@ -231,7 +238,7 @@ export const UserDashboard = () => {
                     </span>
                   </div>
 
-                  {/* Progress bar */}
+                  {/* Barra di utilizzo area */}
                   <div
                     style={{
                       width: "100%",

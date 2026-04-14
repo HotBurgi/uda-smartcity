@@ -2,6 +2,7 @@ import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import { LogOut, CarFront } from "lucide-react";
 
+// Layout comune con navbar e contenitore pagina.
 export const Layout = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -26,6 +27,7 @@ export const Layout = () => {
         </div>
 
         <div className="nav-links">
+          {/* Menu differenziato per ruolo */}
           {isAdmin ? (
             <>
               <Link

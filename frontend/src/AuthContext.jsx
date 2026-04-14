@@ -3,11 +3,13 @@ import { apiClient } from "./api";
 
 const AuthContext = createContext();
 
+// Provider autenticazione: mantiene stato utente e operazioni login/logout.
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Al mount verifica se esiste una sessione lato server.
     const checkAuth = async () => {
       try {
         const data = await apiClient("/me");
@@ -22,6 +24,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (username, password) => {
+    // Effettua login e aggiorna il profilo nel contesto.
     const data = await apiClient("/login", {
       method: "POST",
       body: { username, password },
@@ -31,6 +34,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
+    // Effettua logout e pulisce il contesto locale.
     await apiClient("/logout", { method: "POST" });
     setUser(null);
   };
