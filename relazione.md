@@ -6,20 +6,33 @@
 - Amministratori Comunali: Clienti interessati alla gestione del traffico e dei parcheggi.
 - Cittadini/Utenti finali: Portatori di interesse che utilizzano l'app per trovare parcheggio.
 
-### 1. Analisi dei requisiti funzionali: 
+## Analisi requisiti
+
+### 1. Funzionali: 
 Il sistema deve consentire l'autenticazione degli utenti o amministratori tramite una pagina di login. Deve permettere agli utenti la visualizzazione in tempo reale dello stato dei parcheggi (liberi/occupati), per consentire a loro di prenotare tramite un form con data e orario il parcheggio in un'area specifica. All'utente inoltre deve essere consentito di visualizzare in una pagina a parte le prenotazioni da lui effettuate. Deve fornire un'interfaccia amministrativa per poter aggiungere zone di sosta e controllare con appositi grafici le prenotazioni effettuate nell'ultimo mese. 
 
 
 ### 2. Non funzionali:
 I dati degli utenti devono essere protetti da password e crittografia. L'interfaccia deve essere intuitiva e facile da usare: con bottoni ben visibili. Il sistema deve essere responsive consentendo così l'utilizzo da telefono.
 
-### 3. Di vincolo: 
+### 3. Di dominio: 
+
+I parcheggi devono essere raggruppati in Aree (es. Centro Storico, Zona Industriale), ognuna con orari di vigenza.
+Garantire agli utenti l'integrità dei dati e che questi non vadano persi o divulgati.
+
+### 4. Di vincolo: 
 -   ﻿﻿Frontend e backend devono essere separati.
 -   ﻿﻿Il backend deve esporre API HTTP/REST.
 - L'autenticazione deve essere gestita tramite login e cookie di sessione.
 -   ﻿﻿I dati devono essere salvati in una base dati scelta dal gruppo.
 -   ﻿﻿II prototipo deve distinguere almeno due ruoli: user e admin.
 -   ﻿﻿Le funzionalità devono essere testate anche tramite file .http o strumenti equivalenti.
+
+### 5. Concorrenza
+Sistemi di Gestione Comunali Standard: Spesso sono database datati che richiedono inserimenti manuali. Il progetto è superiore grazie all'interfaccia React moderna e alla gestione automatizzata dei ruoli (Admin/User).
+
+### 6. Fattibilità
+la fattibilità risulta estremamente elevata: tecnicamente, lo stack React-Python assicura scalabilità e performance; economicamente, l’abbattimento dei costi di manutenzione hardware rende il sistema altamente sostenibile e pronto per l'implementazione in contesti urbani moderni.
 
 ## Progettazione
 
@@ -103,3 +116,15 @@ element={
 }
 />
 ```
+
+## 5. Distribuzione
+
+-   Il codice è rilasciato su GitHub: https://github.com/HotBurgi/uda-smartcity.
+    
+
+
+
+## 6. Manutenzione ed evoluzione
+    
+Il sistema può essere potenziato attraverso l'integrazione di sistemi di pagamento digitali (come Stripe o PayPal) per automatizzare le transazioni direttamente dall'app. Un'altra evoluzione naturale riguarda l'integrazione di algoritmi di Machine Learning che, analizzando lo storico dei dati raccolti nel database, siano in grado di prevedere l'affluenza nelle diverse aree cittadine, suggerendo all'utente il momento migliore per trovare parcheggio.
+
