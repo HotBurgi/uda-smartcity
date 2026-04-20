@@ -6,6 +6,7 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: smartcity
+      TZ: Europe/Rome
     ports:
       - "3306:3306"
 
@@ -16,6 +17,7 @@ services:
       - "8080:80"
     environment:
       PMA_HOST: db
+      TZ: Europe/Rome
 
   # Backend Flask
   backend:
@@ -27,6 +29,7 @@ services:
       - DB_USER=root
       - DB_PASS=root
       - DB_NAME=smartcity
+      - TZ=Europe/Rome
     depends_on:
       - db
 
