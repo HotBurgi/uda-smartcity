@@ -1,6 +1,3 @@
-### INIT DATABASE
-POST http://localhost:5001/api/init_db
-
 ### LOGIN AS ADMIN
 POST http://localhost:5001/api/login
 Content-Type: application/json

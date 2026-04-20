@@ -166,7 +166,7 @@ export const UserDashboard = () => {
       setSuccessMsg(
         "Prenotazione effettuata! La fascia selezionata e stata riservata.",
       );
-      fetchAreas();
+      await fetchAreas();
     } catch (e) {
       setActionError(e.message);
     } finally {
@@ -206,13 +206,18 @@ export const UserDashboard = () => {
       ) : (
         <div className="grid">
           {areas.map((a) => {
-            const maxCap = a.max_capacity && a.max_capacity > 0 ? a.max_capacity : 1;
+            const maxCap =
+              a.max_capacity && a.max_capacity > 0 ? a.max_capacity : 1;
             const isFull = a.available_capacity === 0;
-            const rawUtilization = ((maxCap - a.available_capacity) / maxCap) * 100;
-            const utilization = Math.max(0, Math.min(100, Math.max(rawUtilization, 0))); // Ensure between 0-100
-            
+            const rawUtilization =
+              ((maxCap - a.available_capacity) / maxCap) * 100;
+            const utilization = Math.max(
+              0,
+              Math.min(100, Math.max(rawUtilization, 0)),
+            ); // Ensure between 0-100
+
             // Per far si che un parcheggio vuoto mostri un minimo di verde, possiamo mostrare una barra vuota o 1%
-            const displayUtilization = utilization > 0 ? utilization : 2; 
+            const displayUtilization = utilization > 0 ? utilization : 2;
 
             return (
               <div key={a.id} className="card">

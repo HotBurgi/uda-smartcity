@@ -5,6 +5,7 @@ export const apiClient = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
 
   const defaultOptions = {
+    cache: "no-store",
     headers: {
       "Content-Type": "application/json",
     },

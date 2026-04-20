@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 from flask import Flask, jsonify, request, session
 from flask_cors import CORS
 import mysql.connector
-from mysql.connector import pooling
 import hashlib
 
 # Backend SmartCity: API Flask per autenticazione, aree parcheggio e prenotazioni.
@@ -16,14 +15,14 @@ DB_USER = os.environ.get('DB_USER', 'root')
 DB_PASS = os.environ.get('DB_PASS', 'root')
 DB_NAME = os.environ.get('DB_NAME', 'smartcity')
 
-# Keep pool None init delay since Docker dependencies might start simultaneously
-pool = None
+pool = None # Pool di connessioni
 
-# Restituisce una connessione al database, inizializzando il pool al primo utilizzo.
+# Restituisce una connessione al database, inizializzando una pool.
 def get_db():
     global pool
     if pool is None:
         try:
+            # Creazione pool.
             pool = mysql.connector.pooling.MySQLConnectionPool(
                 pool_name="mypool",
                 pool_size=5,
@@ -31,10 +30,9 @@ def get_db():
                 user=DB_USER,
                 password=DB_PASS,
                 database=DB_NAME,
-                # Try creating database if it doesn't exist
             )
-        except Exception as e:
-            # Fallback to single connection if pool fails or DB not created yet
+        except Exception:
+            # In caso di errore, ritorna una singola connessione.
             return mysql.connector.connect(
                 host=DB_HOST,
                 user=DB_USER,
@@ -46,47 +44,6 @@ def get_db():
 def hash_password(password):
     # Usa SHA-256 per allinearsi al formato hash salvato nel database.
     return hashlib.sha256(password.encode()).hexdigest()
-
-@app.route('/api/init_db', methods=['POST'])
-def init_db():
-    try:
-        # Assicura che il database esista prima di applicare lo schema.
-        conn_setup = mysql.connector.connect(
-            host=DB_HOST, user=DB_USER, password=DB_PASS
-        )
-        csetup = conn_setup.cursor()
-        csetup.execute(f"CREATE DATABASE IF NOT EXISTS {DB_NAME}")
-        csetup.close()
-        conn_setup.close()
-
-        conn = get_db()
-        cursor = conn.cursor()
-        
-        with open('schema.sql', 'r') as f:
-            schema_sql = f.read()
-        
-        # Esegue lo schema SQL separando gli statement sul ';'.
-        for statement in schema_sql.split(';'):
-            if statement.strip():
-                cursor.execute(statement)
-
-        # Inserisce utenti di base solo al primo bootstrap.
-        cursor.execute("SELECT COUNT(*) FROM users")
-        if cursor.fetchone()[0] == 0:
-            admin_pw = hash_password('admin')
-            user_pw = hash_password('user1')
-            cursor.execute("INSERT INTO users (username, password, role) VALUES (%s, %s, %s)", ('admin', admin_pw, 'admin'))
-            cursor.execute("INSERT INTO users (username, password, role) VALUES (%s, %s, %s)", ('user1', user_pw, 'user'))
-            conn.commit()
-
-        return jsonify({"message": "Database initialized successfully"}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-    finally:
-        if 'cursor' in locals():
-            cursor.close()
-        if 'conn' in locals() and conn.is_connected():
-            conn.close()
 
 # =========== AUTENTICAZIONE ===========
 
@@ -165,7 +122,7 @@ def get_areas():
     conn.close()
     
     for area in areas:
-        # Evita valori negativi in caso di sovrapposizioni anomale.
+        # Evita valori negativi in caso di sovrapposizioni.
         area['available_capacity'] = max(0, int(area['available_capacity']))
         
     return jsonify(areas)

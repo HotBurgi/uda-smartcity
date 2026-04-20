@@ -8,10 +8,10 @@ Questo progetto è stato realizzato come prototipo per l'Ufficio Mobilità Soste
 
 ## Le Tecnologie che abbiamo scelto
 
--   **Frontend:** ReactJS + JSX (Interfaccia moderna e dinamica senza ricaricamento della pagina, in puro stile "Glassmorphism").
--   **Backend:** Python 3 con micro-framework Flask (Espone le API HTTP/REST).
--   **Database:** MySQL 8 (Persistenza dei dati, relazionale, con calcoli in tempo reale sulle disponibilità).
--   **Infrastruttura:** Docker e Docker Compose (Per avviare tutto il pacchetto in modo semplice e identico su qualsiasi PC).
+- **Frontend:** ReactJS + JSX (Interfaccia moderna e dinamica senza ricaricamento della pagina, in puro stile "Glassmorphism").
+- **Backend:** Python 3 con micro-framework Flask (Espone le API HTTP/REST).
+- **Database:** MySQL 8 (Persistenza dei dati, relazionale, con calcoli in tempo reale sulle disponibilità).
+- **Infrastruttura:** Docker e Docker Compose (Per avviare tutto il pacchetto in modo semplice e identico su qualsiasi PC).
 
 ---
 
@@ -20,23 +20,21 @@ Questo progetto è stato realizzato come prototipo per l'Ufficio Mobilità Soste
 Per testare la nostra applicazione, abbiamo preparato un ambiente `docker-compose` automatico. Non c'è bisogno di installare Python o Node.js nel computer host, ma solo **Docker**.
 
 ### Passo 1: Avviare i server
+
 Apri il terminale all'interno di questa cartella (dove si trova il file `docker-compose.yml`) e lancia:
+
 ```bash
 docker compose up --build -d
 ```
-*Questo comando scaricherà l'occorrente e avvierà il database, il server backend e la pagina web in background.*
 
-### Passo 2: Inizializzare il Database (Tabella e Utenti di default)
-Sempre dal terminale, esegui questo comando per far creare al server le tabelle del database e inserire gli utenti di prova:
-```bash
-curl -X POST http://localhost:5001/api/init_db
-```
-*(In alternativa, puoi usare il file `backend/tests.http` cliccando su "Send Request" da Visual Studio Code).*
+_Questo comando scaricherà l'occorrente e avvierà il database, il server backend e la pagina web in background._
 
-### Passo 3: Utilizzare l'Applicazione
+### Passo 2: Utilizzare l'Applicazione
+
 A questo punto è tutto pronto! Apri il browser e vai agli indirizzi:
+
 - **L'App (Frontend):** [http://localhost:3000](http://localhost:3000)
-- **Visualizzatore Database (phpMyAdmin):** [http://localhost:8080](http://localhost:8080) *(Opzionale, serve per ispezionare se i dati passano al database).*
+- **Visualizzatore Database (phpMyAdmin):** [http://localhost:8080](http://localhost:8080) _(Opzionale, serve per ispezionare se i dati passano al database)._
 
 ---
 
@@ -45,12 +43,16 @@ A questo punto è tutto pronto! Apri il browser e vai agli indirizzi:
 Abbiamo predisposto già nel database due account per testare l'applicativo:
 
 ### 1) Account Cittadino (User)
+
 Utilizza queste credenziali per vedere la prenotazione dei parcheggi:
+
 - Username: `user1`
 - Password: `user1_password`
 
 ### 2) Account Amministratore (Admin)
+
 Utilizza queste credenziali per vedere i grafici dei trend a 30 giorni e l'aggiunta di nuove aree:
+
 - Username: `admin`
 - Password: `admin_password`
 
@@ -59,9 +61,10 @@ Utilizza queste credenziali per vedere i grafici dei trend a 30 giorni e l'aggiu
 ## Come spegnere il progetto
 
 Al termine della valutazione, per chiudere in sicurezza tutti i server e liberare la rete, digita nel terminale:
+
 ```bash
 docker compose down
 ```
 
 Grazie per l'attenzione!
-*Il gruppo di sviluppo.*
+_Il gruppo di sviluppo._
