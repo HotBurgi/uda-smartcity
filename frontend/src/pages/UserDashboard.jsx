@@ -188,13 +188,14 @@ export const UserDashboard = () => {
               start_time: selectedStart,
               duration_minutes: String(selectedDuration),
             });
-            const data = await apiClient(
-              `/areas/${encodeURIComponent(area.id)}/availability?${params.toString()}`,
-            );
+            const data = await apiClient(`/areas?${params.toString()}`);
+            const selectedAreaData = Array.isArray(data)
+              ? data.find((row) => row.id === area.id)
+              : null;
             if (!cancelled) {
               setSlotAvailabilityByArea((prev) => ({
                 ...prev,
-                [area.id]: data,
+                [area.id]: selectedAreaData || null,
               }));
             }
           } catch {

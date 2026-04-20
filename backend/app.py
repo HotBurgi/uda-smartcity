@@ -69,20 +69,6 @@ def parse_duration_value(duration_minutes_raw):
     return duration_minutes
 
 
-def get_overlapping_bookings_count(cursor, area_id, start_time, end_time):
-    cursor.execute(
-        """
-        SELECT COUNT(*) as overlap_count
-        FROM bookings b
-        WHERE b.area_id = %s
-        AND b.start_time < %s
-        AND b.end_time > %s
-    """,
-        (area_id, end_time, start_time),
-    )
-    row = cursor.fetchone()
-    return int(row['overlap_count']) if row else 0
-
 # =========== AUTENTICAZIONE ===========
 
 @app.route('/api/login', methods=['POST'])
@@ -193,49 +179,6 @@ def get_areas():
         
     return jsonify(areas)
 
-
-@app.route('/api/areas/<area_id>/availability', methods=['GET'])
-def get_area_availability(area_id):
-    if 'user_id' not in session:
-        return jsonify({"error": "Unauthorized"}), 401
-
-    start_time_raw = request.args.get('start_time')
-    duration_minutes_raw = request.args.get('duration_minutes', 60)
-
-    start_time = parse_start_time_value(start_time_raw)
-    if start_time is None:
-        return jsonify({"error": "Invalid start_time format. Use YYYY-MM-DDTHH:MM"}), 400
-
-    duration_minutes = parse_duration_value(duration_minutes_raw)
-    if duration_minutes is None:
-        return jsonify({"error": "duration_minutes must be one of: 30, 60, 90"}), 400
-
-    end_time = start_time + timedelta(minutes=duration_minutes)
-
-    conn = get_db()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT id, max_capacity FROM parking_areas WHERE id = %s", (area_id,))
-    area = cursor.fetchone()
-
-    if not area:
-        cursor.close()
-        conn.close()
-        return jsonify({"error": "Area not found"}), 404
-
-    overlapping = get_overlapping_bookings_count(cursor, area_id, start_time, end_time)
-    available_capacity = max(0, int(area['max_capacity']) - overlapping)
-
-    cursor.close()
-    conn.close()
-
-    return jsonify({
-        "area_id": area_id,
-        "max_capacity": int(area['max_capacity']),
-        "available_capacity": available_capacity,
-        "start_time": start_time.strftime("%Y-%m-%dT%H:%M:%S"),
-        "end_time": end_time.strftime("%Y-%m-%dT%H:%M:%S"),
-        "duration_minutes": duration_minutes,
-    })
 
 @app.route('/api/bookings', methods=['POST'])
 def create_booking():
