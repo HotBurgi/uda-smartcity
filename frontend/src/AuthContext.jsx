@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
       try {
         const data = await apiClient("/me");
         setUser(data);
-      } catch (err) {
+      } catch {
         setUser(null);
       } finally {
         setLoading(false);
@@ -53,4 +53,5 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);

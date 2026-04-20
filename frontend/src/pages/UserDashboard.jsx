@@ -1,6 +1,29 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { apiClient } from "../api";
 import { MapPin, Clock } from "lucide-react";
+
+const pad = (n) => String(n).padStart(2, "0");
+
+const toDateValue = (date) =>
+  `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+
+const toTimeValue = (date) =>
+  `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+
+const getDefaultBookingStart = () => {
+  // Arrotonda al prossimo slot da 30 minuti.
+  const d = new Date();
+  const rounded = Math.ceil(d.getMinutes() / 30) * 30;
+  d.setMinutes(rounded, 0, 0);
+  if (rounded === 60) {
+    d.setHours(d.getHours() + 1);
+    d.setMinutes(0, 0, 0);
+  }
+  return {
+    date: toDateValue(d),
+    time: toTimeValue(d),
+  };
+};
 
 // Dashboard utente: mostra disponibilita aree e form di prenotazione.
 export const UserDashboard = () => {
@@ -12,29 +35,9 @@ export const UserDashboard = () => {
   const [bookingTimeByArea, setBookingTimeByArea] = useState({});
   const [bookingDurationByArea, setBookingDurationByArea] = useState({});
   const [bookingInProgress, setBookingInProgress] = useState({});
-
-  const pad = (n) => String(n).padStart(2, "0");
-
-  const toDateValue = (date) =>
-    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-
-  const toTimeValue = (date) =>
-    `${pad(date.getHours())}:${pad(date.getMinutes())}`;
-
-  const getDefaultBookingStart = () => {
-    // Arrotonda al prossimo slot da 30 minuti.
-    const d = new Date();
-    const rounded = Math.ceil(d.getMinutes() / 30) * 30;
-    d.setMinutes(rounded, 0, 0);
-    if (rounded === 60) {
-      d.setHours(d.getHours() + 1);
-      d.setMinutes(0, 0, 0);
-    }
-    return {
-      date: toDateValue(d),
-      time: toTimeValue(d),
-    };
-  };
+  const [slotAvailabilityByArea, setSlotAvailabilityByArea] = useState({});
+  const [slotLoadingByArea, setSlotLoadingByArea] = useState({});
+  const [nowTs, setNowTs] = useState(() => Date.now());
 
   const getTimeOptions = () => {
     // Genera opzioni orarie giornaliere (step 30 minuti).
@@ -55,7 +58,7 @@ export const UserDashboard = () => {
     if (!dateValue || !timeValue) return false;
     const selected = new Date(`${dateValue}T${timeValue}`);
     if (Number.isNaN(selected.getTime())) return false;
-    return selected.getTime() < Date.now();
+    return selected.getTime() < nowTs;
   };
 
   const buildStartDateTime = (dateValue, timeValue) => {
@@ -81,7 +84,7 @@ export const UserDashboard = () => {
     return `${fmt.format(start)} - ${fmt.format(end)} (${durationMinutes} min)`;
   };
 
-  const fetchAreas = async () => {
+  const fetchAreas = useCallback(async () => {
     try {
       const data = await apiClient("/areas");
       setAreas(data);
@@ -122,14 +125,103 @@ export const UserDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     // Refresh periodico per aggiornare la disponibilita in tempo reale.
-    fetchAreas();
-    const interval = setInterval(fetchAreas, 30000); // 30s refresh
+    const initialTimerId = setTimeout(() => {
+      void fetchAreas();
+    }, 0);
+    const interval = setInterval(() => {
+      void fetchAreas();
+    }, 30000); // 30s refresh
+    return () => {
+      clearTimeout(initialTimerId);
+      clearInterval(interval);
+    };
+  }, [fetchAreas]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNowTs(Date.now());
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    // Ricalcola la disponibilita per la fascia selezionata ogni volta che cambia data/ora/durata.
+    if (areas.length === 0) return;
+
+    let cancelled = false;
+
+    const fetchSelectedSlotAvailability = async () => {
+      await Promise.all(
+        areas.map(async (area) => {
+          const selectedDate = bookingDateByArea[area.id];
+          const selectedTime = bookingTimeByArea[area.id];
+          const selectedDuration = Number(bookingDurationByArea[area.id] || 60);
+          const selectedStart = buildStartDateTime(selectedDate, selectedTime);
+
+          if (!selectedStart) {
+            if (!cancelled) {
+              setSlotAvailabilityByArea((prev) => ({
+                ...prev,
+                [area.id]: null,
+              }));
+              setSlotLoadingByArea((prev) => ({
+                ...prev,
+                [area.id]: false,
+              }));
+            }
+            return;
+          }
+
+          if (!cancelled) {
+            setSlotLoadingByArea((prev) => ({
+              ...prev,
+              [area.id]: true,
+            }));
+          }
+
+          try {
+            const params = new URLSearchParams({
+              start_time: selectedStart,
+              duration_minutes: String(selectedDuration),
+            });
+            const data = await apiClient(
+              `/areas/${encodeURIComponent(area.id)}/availability?${params.toString()}`,
+            );
+            if (!cancelled) {
+              setSlotAvailabilityByArea((prev) => ({
+                ...prev,
+                [area.id]: data,
+              }));
+            }
+          } catch {
+            if (!cancelled) {
+              setSlotAvailabilityByArea((prev) => ({
+                ...prev,
+                [area.id]: null,
+              }));
+            }
+          } finally {
+            if (!cancelled) {
+              setSlotLoadingByArea((prev) => ({
+                ...prev,
+                [area.id]: false,
+              }));
+            }
+          }
+        }),
+      );
+    };
+
+    fetchSelectedSlotAvailability();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [areas, bookingDateByArea, bookingTimeByArea, bookingDurationByArea]);
 
   const handleBook = async (areaId) => {
     // Crea una prenotazione per l'area selezionata con data/ora e durata scelte.
@@ -206,11 +298,14 @@ export const UserDashboard = () => {
       ) : (
         <div className="grid">
           {areas.map((a) => {
+            const slotAvailability = slotAvailabilityByArea[a.id];
+            const selectedAvailable =
+              slotAvailability?.available_capacity ?? a.available_capacity;
             const maxCap =
               a.max_capacity && a.max_capacity > 0 ? a.max_capacity : 1;
-            const isFull = a.available_capacity === 0;
+            const isFull = selectedAvailable === 0;
             const rawUtilization =
-              ((maxCap - a.available_capacity) / maxCap) * 100;
+              ((maxCap - selectedAvailable) / maxCap) * 100;
             const utilization = Math.max(
               0,
               Math.min(100, Math.max(rawUtilization, 0)),
@@ -237,7 +332,7 @@ export const UserDashboard = () => {
                   <div className="flex justify-between mb-2">
                     <span className="text-muted">Posti disponibili</span>
                     <span style={{ fontSize: "1.25rem", fontWeight: "700" }}>
-                      {a.available_capacity}{" "}
+                      {selectedAvailable}{" "}
                       <span
                         className="text-muted"
                         style={{ fontSize: "0.875rem" }}
@@ -245,6 +340,11 @@ export const UserDashboard = () => {
                         / {a.max_capacity}
                       </span>
                     </span>
+                  </div>
+                  <div className="text-muted" style={{ fontSize: "0.8rem" }}>
+                    {slotLoadingByArea[a.id]
+                      ? "Calcolo disponibilita fascia selezionata..."
+                      : "Disponibilita per data/ora selezionate"}
                   </div>
 
                   {/* Barra di utilizzo area */}

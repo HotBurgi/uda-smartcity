@@ -45,6 +45,44 @@ def hash_password(password):
     # Usa SHA-256 per allinearsi al formato hash salvato nel database.
     return hashlib.sha256(password.encode()).hexdigest()
 
+
+def parse_start_time_value(start_time_raw):
+    # Supporta i formati inviati dal frontend per data/ora locale.
+    if not start_time_raw:
+        return None
+    for fmt in ["%Y-%m-%dT%H:%M", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S"]:
+        try:
+            return datetime.strptime(start_time_raw, fmt)
+        except ValueError:
+            continue
+    return None
+
+
+def parse_duration_value(duration_minutes_raw):
+    # Le durate valide sono predefinite per semplificare la gestione slot.
+    try:
+        duration_minutes = int(duration_minutes_raw)
+    except (TypeError, ValueError):
+        return None
+    if duration_minutes not in [30, 60, 90]:
+        return None
+    return duration_minutes
+
+
+def get_overlapping_bookings_count(cursor, area_id, start_time, end_time):
+    cursor.execute(
+        """
+        SELECT COUNT(*) as overlap_count
+        FROM bookings b
+        WHERE b.area_id = %s
+        AND b.start_time < %s
+        AND b.end_time > %s
+    """,
+        (area_id, end_time, start_time),
+    )
+    row = cursor.fetchone()
+    return int(row['overlap_count']) if row else 0
+
 # =========== AUTENTICAZIONE ===========
 
 @app.route('/api/login', methods=['POST'])
@@ -103,19 +141,47 @@ def get_areas():
     if 'user_id' not in session:
         return jsonify({"error": "Unauthorized"}), 401
 
+    requested_start_raw = request.args.get('start_time')
+    duration_minutes_raw = request.args.get('duration_minutes', 60)
+
+    requested_start = None
+    requested_end = None
+    if requested_start_raw:
+        requested_start = parse_start_time_value(requested_start_raw)
+        if requested_start is None:
+            return jsonify({"error": "Invalid start_time format. Use YYYY-MM-DDTHH:MM"}), 400
+
+        duration_minutes = parse_duration_value(duration_minutes_raw)
+        if duration_minutes is None:
+            return jsonify({"error": "duration_minutes must be one of: 30, 60, 90"}), 400
+        requested_end = requested_start + timedelta(minutes=duration_minutes)
+
     conn = get_db()
     cursor = conn.cursor(dictionary=True)
     
     # Calcola la disponibilita sottraendo le prenotazioni attive alla capienza massima.
-    query = """
-        SELECT a.id, a.name, a.max_capacity,
-        (a.max_capacity - (
-            SELECT COUNT(*) FROM bookings b 
-            WHERE b.area_id = a.id AND NOW() BETWEEN b.start_time AND b.end_time
-        )) AS available_capacity
-        FROM parking_areas a
-    """
-    cursor.execute(query)
+    if requested_start and requested_end:
+        query = """
+            SELECT a.id, a.name, a.max_capacity,
+            (a.max_capacity - (
+                SELECT COUNT(*) FROM bookings b
+                WHERE b.area_id = a.id
+                AND b.start_time < %s
+                AND b.end_time > %s
+            )) AS available_capacity
+            FROM parking_areas a
+        """
+        cursor.execute(query, (requested_end, requested_start))
+    else:
+        query = """
+            SELECT a.id, a.name, a.max_capacity,
+            (a.max_capacity - (
+                SELECT COUNT(*) FROM bookings b
+                WHERE b.area_id = a.id AND NOW() BETWEEN b.start_time AND b.end_time
+            )) AS available_capacity
+            FROM parking_areas a
+        """
+        cursor.execute(query)
     areas = cursor.fetchall()
     
     cursor.close()
@@ -126,6 +192,50 @@ def get_areas():
         area['available_capacity'] = max(0, int(area['available_capacity']))
         
     return jsonify(areas)
+
+
+@app.route('/api/areas/<area_id>/availability', methods=['GET'])
+def get_area_availability(area_id):
+    if 'user_id' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    start_time_raw = request.args.get('start_time')
+    duration_minutes_raw = request.args.get('duration_minutes', 60)
+
+    start_time = parse_start_time_value(start_time_raw)
+    if start_time is None:
+        return jsonify({"error": "Invalid start_time format. Use YYYY-MM-DDTHH:MM"}), 400
+
+    duration_minutes = parse_duration_value(duration_minutes_raw)
+    if duration_minutes is None:
+        return jsonify({"error": "duration_minutes must be one of: 30, 60, 90"}), 400
+
+    end_time = start_time + timedelta(minutes=duration_minutes)
+
+    conn = get_db()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT id, max_capacity FROM parking_areas WHERE id = %s", (area_id,))
+    area = cursor.fetchone()
+
+    if not area:
+        cursor.close()
+        conn.close()
+        return jsonify({"error": "Area not found"}), 404
+
+    overlapping = get_overlapping_bookings_count(cursor, area_id, start_time, end_time)
+    available_capacity = max(0, int(area['max_capacity']) - overlapping)
+
+    cursor.close()
+    conn.close()
+
+    return jsonify({
+        "area_id": area_id,
+        "max_capacity": int(area['max_capacity']),
+        "available_capacity": available_capacity,
+        "start_time": start_time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "end_time": end_time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "duration_minutes": duration_minutes,
+    })
 
 @app.route('/api/bookings', methods=['POST'])
 def create_booking():
@@ -141,22 +251,14 @@ def create_booking():
         return jsonify({"error": "area_id is required"}), 400
 
     # Valida e normalizza la durata richiesta.
-    try:
-        duration_minutes = int(duration_minutes_raw)
-    except (TypeError, ValueError):
-        return jsonify({"error": "duration_minutes must be an integer"}), 400
-
-    if duration_minutes not in [30, 60, 90]:
+    duration_minutes = parse_duration_value(duration_minutes_raw)
+    if duration_minutes is None:
         return jsonify({"error": "duration_minutes must be one of: 30, 60, 90"}), 400
 
     # Accetta sia formato datetime-local che timestamp completo.
     if start_time_raw:
-        try:
-            try:
-                start_time = datetime.strptime(start_time_raw, "%Y-%m-%dT%H:%M")
-            except ValueError:
-                start_time = datetime.strptime(start_time_raw, "%Y-%m-%d %H:%M:%S")
-        except ValueError:
+        start_time = parse_start_time_value(start_time_raw)
+        if start_time is None:
             return jsonify({"error": "Invalid start_time format. Use YYYY-MM-DDTHH:MM"}), 400
 
         # Blocca prenotazioni nel passato (con tolleranza minima).
@@ -229,7 +331,11 @@ def my_history():
     # Calcola lo stato direttamente in query in base all'ora corrente.
     cursor.execute("""
         SELECT b.id, b.area_id, a.name as area_name, b.start_time, b.end_time,
-        IF(NOW() BETWEEN b.start_time AND b.end_time, 'Active', 'Expired') as status
+        CASE
+            WHEN NOW() < b.start_time THEN 'Upcoming'
+            WHEN NOW() BETWEEN b.start_time AND b.end_time THEN 'Active'
+            ELSE 'Expired'
+        END as status
         FROM bookings b
         JOIN parking_areas a ON b.area_id = a.id
         WHERE b.user_id = %s
@@ -240,7 +346,19 @@ def my_history():
     cursor.close()
     conn.close()
     
-    return jsonify(history)
+    # Serializza date/ore in formato locale senza timezone per evitare shift lato browser.
+    serialized_history = []
+    for booking in history:
+        serialized_history.append({
+            "id": booking['id'],
+            "area_id": booking['area_id'],
+            "area_name": booking['area_name'],
+            "status": booking['status'],
+            "start_time": booking['start_time'].strftime("%Y-%m-%dT%H:%M:%S"),
+            "end_time": booking['end_time'].strftime("%Y-%m-%dT%H:%M:%S"),
+        })
+
+    return jsonify(serialized_history)
 
 # =========== ENDPOINT AMMINISTRATORE ===========
 

@@ -21,6 +21,39 @@ export const UserHistory = () => {
     fetchHistory();
   }, []);
 
+  const formatDateTime = (value) => {
+    if (!value) return "-";
+
+    // I valori backend sono naive-local (YYYY-MM-DDTHH:MM:SS): li forziamo a Date locale.
+    const m = String(value).match(
+      /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?$/,
+    );
+
+    if (m) {
+      const [, y, mo, d, h, mi, s] = m;
+      const localDate = new Date(
+        Number(y),
+        Number(mo) - 1,
+        Number(d),
+        Number(h),
+        Number(mi),
+        Number(s || 0),
+      );
+      return localDate.toLocaleString("it-IT");
+    }
+
+    const fallback = new Date(value);
+    return Number.isNaN(fallback.getTime())
+      ? String(value)
+      : fallback.toLocaleString("it-IT");
+  };
+
+  const statusMeta = {
+    Active: { label: "Attiva", badge: "badge-success" },
+    Upcoming: { label: "In arrivo", badge: "badge-neutral" },
+    Expired: { label: "Scaduta", badge: "badge-danger" },
+  };
+
   if (loading) return <div>Caricamento storico...</div>;
 
   return (
@@ -48,14 +81,20 @@ export const UserHistory = () => {
                 <tr key={b.id}>
                   <td>#{b.id}</td>
                   <td>{b.area_name || b.area_id}</td>
-                  <td>{new Date(b.start_time).toLocaleString("it-IT")}</td>
-                  <td>{new Date(b.end_time).toLocaleString("it-IT")}</td>
+                  <td>{formatDateTime(b.start_time)}</td>
+                  <td>{formatDateTime(b.end_time)}</td>
                   <td>
-                    <span
-                      className={`badge ${b.status === "Active" ? "badge-success" : "badge-neutral"}`}
-                    >
-                      {b.status === "Active" ? "Attiva" : b.status}
-                    </span>
+                    {(() => {
+                      const meta = statusMeta[b.status] || {
+                        label: b.status || "-",
+                        badge: "badge-neutral",
+                      };
+                      return (
+                        <span className={`badge ${meta.badge}`}>
+                          {meta.label}
+                        </span>
+                      );
+                    })()}
                   </td>
                 </tr>
               ))}

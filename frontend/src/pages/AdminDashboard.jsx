@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { apiClient } from "../api";
 import { Link } from "react-router-dom";
 import { Plus } from "lucide-react";
@@ -15,7 +15,7 @@ export const AdminDashboard = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const fetchAreas = async () => {
+  const fetchAreas = useCallback(async () => {
     try {
       const data = await apiClient("/areas");
       setAreas(data);
@@ -24,11 +24,14 @@ export const AdminDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchAreas();
-  }, []);
+    const timerId = setTimeout(() => {
+      void fetchAreas();
+    }, 0);
+    return () => clearTimeout(timerId);
+  }, [fetchAreas]);
 
   const handleCreate = async (e) => {
     // Invia i dati nuova area al backend e aggiorna la lista.
@@ -44,7 +47,7 @@ export const AdminDashboard = () => {
       setId("");
       setName("");
       setMaxCapacity("");
-      fetchAreas();
+      void fetchAreas();
     } catch (err) {
       setError(err.message);
     }

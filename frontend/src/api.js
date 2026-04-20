@@ -25,14 +25,16 @@ export const apiClient = async (endpoint, options = {}) => {
     try {
       const errorData = await response.json();
       errorMsg = errorData.error || errorMsg;
-    } catch (e) {}
+    } catch {
+      // Ignora payload non-JSON e usa messaggio fallback.
+    }
     throw new Error(errorMsg);
   }
 
   // Alcuni endpoint (es. logout) possono rispondere senza body JSON.
   try {
     return await response.json();
-  } catch (e) {
+  } catch {
     return null;
   }
 };
